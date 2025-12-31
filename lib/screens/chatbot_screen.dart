@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:gardawara_ai/model/chatbubble_model.dart';
+import 'package:video_player/video_player.dart'; // Tambahkan ini
 import '../controller/chatbot_controller.dart';
 
 class GardaChatScreen extends StatefulWidget {
+  // Kita tidak butuh notificationContent lagi di sini jika menggunakan Singleton
   const GardaChatScreen({super.key});
 
   @override
@@ -10,12 +13,27 @@ class GardaChatScreen extends StatefulWidget {
 }
 
 class _GardaChatScreenState extends State<GardaChatScreen> {
+  // Mengambil instance singleton yang sama dengan yang dipanggil di NotificationService
   final ChatController _controller = ChatController();
   final String robotAssetPath = 'assets/images/robot.png';
 
   @override
+  void initState() {
+    super.initState();
+
+    // Memastikan UI melakukan scroll ke bawah dan refresh saat layar dibuka
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _controller.notifyListeners();
+      }
+    });
+  }
+
+  @override
   void dispose() {
-    _controller.dispose();
+    // Karena _controller adalah Singleton, sebaiknya jangan di-dispose di sini
+    // agar datanya tidak hilang saat pindah screen.
+    // Cukup hapus _controller.dispose() jika itu Singleton.
     super.dispose();
   }
 
@@ -57,6 +75,7 @@ class _GardaChatScreenState extends State<GardaChatScreen> {
                         message: msg.text,
                         isBot: msg.isBot,
                         robotIconPath: robotAssetPath,
+                        videoUrl: msg.videoUrl,
                       );
                     },
                   );
@@ -242,89 +261,4 @@ class _GardaChatScreenState extends State<GardaChatScreen> {
     height: 8,
     decoration: BoxDecoration(color: color, shape: BoxShape.circle),
   );
-}
-
-class ChatBubble extends StatelessWidget {
-  final String message;
-  final bool isBot;
-  final String robotIconPath;
-
-  const ChatBubble({
-    super.key,
-    required this.message,
-    required this.isBot,
-    required this.robotIconPath,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        mainAxisAlignment:
-            isBot ? MainAxisAlignment.start : MainAxisAlignment.end,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          if (isBot) ...[
-            Container(
-              margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: const Color(0xFF00C6AE),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Image.asset(
-                robotIconPath,
-                width: 20,
-                height: 20,
-                errorBuilder:
-                    (c, o, s) => const Icon(
-                      Icons.smart_toy,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-              ),
-            ),
-          ],
-          Flexible(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.85),
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(isBot ? 5 : 20),
-                  topRight: Radius.circular(isBot ? 20 : 5),
-                  bottomLeft: const Radius.circular(20),
-                  bottomRight: const Radius.circular(20),
-                ),
-                border: Border.all(color: Colors.black12),
-              ),
-              child: MarkdownBody(
-                data: message,
-                styleSheet: MarkdownStyleSheet(
-                  p: const TextStyle(
-                    color: Colors.black87,
-                    fontSize: 14,
-                    height: 1.4,
-                  ),
-                  strong: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          if (!isBot) ...[
-            const SizedBox(width: 8),
-            const CircleAvatar(
-              backgroundColor: Color(0xFF00E5C5),
-              radius: 16,
-              child: Icon(Icons.person, color: Colors.white, size: 20),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
 }

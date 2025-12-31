@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../common/services/heartbeat_service.dart';
+import '../common/services/notification_service.dart';
 import 'home_screen.dart';
 
 class SetupScreen extends StatefulWidget {
@@ -80,6 +81,8 @@ class _SetupScreenState extends State<SetupScreen> {
       );
 
       if (success && mounted) {
+        await NotificationService().updateToken(userId);
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: const Color(0xFF138066),

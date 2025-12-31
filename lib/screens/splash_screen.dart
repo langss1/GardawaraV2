@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gardawara_ai/common/services/notification_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'home_screen.dart';
@@ -20,6 +21,11 @@ class _SplashScreenState extends State<SplashScreen> {
 
   _checkSetupStatus() async {
     await Future.delayed(const Duration(seconds: 3));
+
+    if (NotificationService.isHandlingNotification) {
+      debugPrint("Navigasi dibatalkan karena ada notifikasi.");
+      return;
+    }
 
     final prefs = await SharedPreferences.getInstance();
 

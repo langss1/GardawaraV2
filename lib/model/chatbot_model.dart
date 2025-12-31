@@ -4,15 +4,21 @@ class ChatMessage {
   final String text;
   final bool isBot;
   final DateTime timestamp;
+  final String? videoUrl;
 
-  ChatMessage({required this.text, required this.isBot, DateTime? timestamp})
-    : timestamp = timestamp ?? DateTime.now();
+  ChatMessage({
+    required this.text,
+    required this.isBot,
+    DateTime? timestamp,
+    this.videoUrl,
+  }) : timestamp = timestamp ?? DateTime.now();
 
   Map<String, dynamic> toMap() {
     return {
       'text': text,
       'isBot': isBot,
       'timestamp': timestamp.toIso8601String(),
+      'videoUrl': videoUrl,
     };
   }
 
@@ -20,6 +26,7 @@ class ChatMessage {
     return ChatMessage(
       text: map['text'],
       isBot: map['isBot'],
+      videoUrl: map['videoUrl'],
       timestamp: DateTime.parse(map['timestamp']),
     );
   }

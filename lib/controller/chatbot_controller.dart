@@ -1,44 +1,88 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 
 import '../model/chatbot_model.dart';
 
 class ChatController extends ChangeNotifier {
+  // --- MULAI POLA SINGLETON ---
+  static final ChatController _instance = ChatController._internal();
+  factory ChatController() => _instance;
+  ChatController._internal() {
+    _loadHistoryAndInit();
+  }
+  // --- SELESAI POLA SINGLETON ---
+
   final String? _apiKey = dotenv.env['GEMINI_API_KEY'];
   late final GenerativeModel _model;
   late final ChatSession _chatSession;
+  final String _backendUrl = dotenv.env['API_URL'] ?? "";
 
   List<ChatMessage> messages = [];
   bool isTyping = false;
   final ScrollController scrollController = ScrollController();
   final TextEditingController textController = TextEditingController();
 
-  ChatController() {
-    _loadHistoryAndInit();
-  }
+  final Completer<void> _initCompleter = Completer<void>();
+  Future<void> get initializationDone => _initCompleter.future;
 
   Future<void> _loadHistoryAndInit() async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<String>? savedChats = prefs.getStringList('chat_history');
+    if (_initCompleter.isCompleted) return; // Mencegah load ganda
 
-    if (savedChats != null && savedChats.isNotEmpty) {
-      messages = savedChats.map((e) => ChatMessage.fromJson(e)).toList();
-    } else {
-      messages = [
-        ChatMessage(
-          text:
-              "Halo 👋 saya Garda AI! Saya bantu kamu menjaga diri dari paparan situs dan aplikasi judi. Ada yang ingin kamu tanyakan?",
-          isBot: true,
-        ),
-      ];
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final List<String>? savedChats = prefs.getStringList('chat_history');
+
+      List<ChatMessage> loadedMessages = [];
+      if (savedChats != null && savedChats.isNotEmpty) {
+        loadedMessages =
+            savedChats.map((e) => ChatMessage.fromJson(e)).toList();
+      } else {
+        loadedMessages = [
+          ChatMessage(
+            text:
+                "Halo 👋 saya Garda AI! Saya bantu kamu menjaga diri dari paparan situs dan aplikasi judi.",
+            isBot: true,
+          ),
+        ];
+      }
+      messages = [...loadedMessages, ...messages];
+      _initGemini();
+    } finally {
+      if (!_initCompleter.isCompleted) _initCompleter.complete();
+      notifyListeners();
+      _scrollToBottom();
     }
+  }
+
+  // Fungsi untuk menambah pesan dari notifikasi
+  Future<void> addMessageFromNotification(Map<String, dynamic> data) async {
+    // JANGAN nunggu initializationDone di sini untuk push data pertama kali
+    // agar data langsung masuk ke list 'messages' sebelum history selesai
+    
+    final String content = data['content'] ?? data['body'] ?? "Pesan baru";
+    final String type = data['type'] ?? "text";
+    final String? url = data['url'];
+
+    // Cek duplikasi
+    if (messages.any((m) => m.text == content)) return;
+
+    final botMsg = ChatMessage(
+      text: content,
+      isBot: true,
+      videoUrl: type == 'video' ? url : null,
+    );
+
+    messages.add(botMsg);
     notifyListeners();
 
-    _initGemini();
-
-    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+    // Simpan ke memori HP (tunggu history beres dulu sebelum save ke disk)
+    await initializationDone;
+    await _saveMessages();
   }
 
   void _initGemini() {
@@ -48,12 +92,11 @@ class ChatController extends ChangeNotifier {
       systemInstruction: Content.text(
         "Kamu adalah Garda AI, seorang asisten psikologi digital yang empatik, sabar, dan profesional. "
         "Tugas utamamu adalah membantu pengguna yang kecanduan judi online (judol). "
-        "Berikan dukungan emosional, tips praktis berhenti berjudi, dan edukasi tentang bahaya judi. "
-        "Gunakan bahasa Indonesia yang santai, suportif, namun tetap solutif. "
-        "Jangan menghakimi pengguna.",
+        "Gunakan bahasa Indonesia yang santai dan suportif.",
       ),
     );
 
+    // Filter history agar hanya teks yang dikirim ke Gemini (Gemini tidak bisa baca video url mentah)
     final history =
         messages.map((m) {
           return Content(m.isBot ? 'model' : 'user', [TextPart(m.text)]);
@@ -99,7 +142,7 @@ class ChatController extends ChangeNotifier {
   }
 
   void _scrollToBottom() {
-    Future.delayed(const Duration(milliseconds: 100), () {
+    Future.delayed(const Duration(milliseconds: 300), () {
       if (scrollController.hasClients) {
         scrollController.animateTo(
           scrollController.position.maxScrollExtent,
