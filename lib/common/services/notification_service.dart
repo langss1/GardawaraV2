@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../controller/chatbot_controller.dart';
-import '../../screens/chatbot_screen.dart';
 
 class NotificationService {
   static bool isHandlingNotification = false; // Flag untuk Splash Screen
@@ -47,14 +46,14 @@ class NotificationService {
   void _handleNavigation(RemoteMessage message) {
     if (message.data['screen'] == 'chatbot') {
       // isHandlingNotification = true; // No longer needed to block Splash Screen
-      
+
       pendingTabIndex = 2; // Set target to Chatbot tab (index 2)
 
       // Segera proses datanya ke Controller
       // Gunakan Future.microtask agar jalan secepat mungkin
       Future.microtask(() async {
         await ChatController().addMessageFromNotification(message.data);
-         // Don't navigate here, let Splash Screen -> GuardianHomeScreen handle it
+        // Don't navigate here, let Splash Screen -> GuardianHomeScreen handle it
       });
     }
   }

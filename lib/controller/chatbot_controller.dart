@@ -1,10 +1,8 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
 
 import '../model/chatbot_model.dart';
 
@@ -20,7 +18,6 @@ class ChatController extends ChangeNotifier {
   final String? _apiKey = dotenv.env['GEMINI_API_KEY'];
   late final GenerativeModel _model;
   late final ChatSession _chatSession;
-  final String _backendUrl = dotenv.env['API_URL'] ?? "";
 
   List<ChatMessage> messages = [];
   bool isTyping = false;
@@ -63,7 +60,7 @@ class ChatController extends ChangeNotifier {
   Future<void> addMessageFromNotification(Map<String, dynamic> data) async {
     // JANGAN nunggu initializationDone di sini untuk push data pertama kali
     // agar data langsung masuk ke list 'messages' sebelum history selesai
-    
+
     final String content = data['content'] ?? data['body'] ?? "Pesan baru";
     final String type = data['type'] ?? "text";
     final String? url = data['url'];

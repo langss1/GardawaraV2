@@ -166,8 +166,10 @@ class _GuardianHomeScreenState extends State<GuardianHomeScreen>
       if (_startTime == null) {
         _startTime = DateTime.now();
         SharedPreferences.getInstance().then(
-          (prefs) =>
-              prefs.setString('protectionStartTime', _startTime!.toIso8601String()),
+          (prefs) => prefs.setString(
+            'protectionStartTime',
+            _startTime!.toIso8601String(),
+          ),
         );
       }
     } else {
@@ -213,7 +215,8 @@ class _GuardianHomeScreenState extends State<GuardianHomeScreen>
               'url': text.length > 25 ? "${text.substring(0, 25)}..." : text,
               'time': DateFormat('HH:mm, dd/MM').format(DateTime.now()),
             });
-            if (_blockedHistory.length > 50) _blockedHistory.removeLast(); // Naikkan limit jadi 50
+            if (_blockedHistory.length > 50)
+              _blockedHistory.removeLast(); // Naikkan limit jadi 50
           });
 
           // Simpan & Sync
@@ -283,7 +286,7 @@ class _GuardianHomeScreenState extends State<GuardianHomeScreen>
             _buildHomeTab(),
             _buildActivityTab(),
             _buildChatbotTab(),
-            _buildSettingsTab(),
+            // _buildSettingsTab(),
           ],
         ),
       ),
@@ -349,11 +352,11 @@ class _GuardianHomeScreenState extends State<GuardianHomeScreen>
               selectedIcon: Icon(Icons.chat_bubble),
               label: 'Chatbot',
             ),
-            NavigationDestination(
-              icon: Icon(Icons.settings_outlined),
-              selectedIcon: Icon(Icons.settings),
-              label: 'Pengaturan',
-            ),
+            // NavigationDestination(
+            //   icon: Icon(Icons.settings_outlined),
+            //   selectedIcon: Icon(Icons.settings),
+            //   label: 'Pengaturan',
+            // ),
           ],
         ),
       ),
@@ -633,8 +636,8 @@ class _GuardianHomeScreenState extends State<GuardianHomeScreen>
     blockedCount: blockedCount,
   );
   Widget _buildChatbotTab() => const GardaChatScreen();
-  Widget _buildSettingsTab() =>
-      const WhitelistBlacklistScreen(); // Atau sesuaikan dengan menu settings Anda
+  // Widget _buildSettingsTab() =>
+  //     const WhitelistBlacklistScreen(); // Atau sesuaikan dengan menu settings Anda
 
   Widget _buildSectionTitle(String title) {
     return Text(
