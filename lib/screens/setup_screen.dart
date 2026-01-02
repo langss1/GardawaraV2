@@ -118,9 +118,8 @@ class _SetupScreenState extends State<SetupScreen>
       bool isValid = await HeartbeatService.verifyGuard(_chatIdController.text);
 
       if (!mounted) return;
-      Navigator.pop(context); // Tutup loading dialog
-
       if (!isValid) {
+        Navigator.pop(context); // Tutup loading dialog jika invalid
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             backgroundColor: Colors.red,
@@ -141,6 +140,8 @@ class _SetupScreenState extends State<SetupScreen>
 
       if (success && mounted) {
         await NotificationService().updateToken(userId);
+        
+        Navigator.pop(context); // Tutup loading dialog sebelum pindah layar
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -179,6 +180,8 @@ class _SetupScreenState extends State<SetupScreen>
             },
           ),
         );
+      } else {
+         if (mounted) Navigator.pop(context); // Tutup dialog jika gagal startProtection
       }
     } catch (e) {
       if (mounted) Navigator.pop(context);

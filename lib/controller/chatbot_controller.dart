@@ -84,7 +84,7 @@ class ChatController extends ChangeNotifier {
 
   void _initGemini() {
     _model = GenerativeModel(
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.5-flash-lite',
       apiKey: _apiKey!,
       systemInstruction: Content.text(
         "Kamu adalah Garda AI, seorang asisten psikologi digital yang empatik, sabar, dan profesional. "
@@ -123,7 +123,10 @@ class ChatController extends ChangeNotifier {
       _saveMessages();
     } catch (e) {
       messages.add(
-        ChatMessage(text: "Terjadi kesalahan koneksi: $e", isBot: true),
+        ChatMessage(
+          text: "Maaf, server sedang sibuk. Coba lagi nanti ya.",
+          isBot: true,
+        ),
       );
     } finally {
       isTyping = false;

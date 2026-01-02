@@ -81,10 +81,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             decoded.map((item) => Map<String, String>.from(item)).toList();
       }
       // Load start time
-       String? timeRaw = prefs.getString('protectionStartTime');
-       if (timeRaw != null) {
-         _startTime = DateTime.parse(timeRaw);
-       }
+      String? timeRaw = prefs.getString('protectionStartTime');
+      if (timeRaw != null) {
+        _startTime = DateTime.parse(timeRaw);
+      }
     });
   }
 
@@ -102,36 +102,30 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _isProcessing = true;
 
       final String text = call.arguments;
+
+      // Cek dengan AI
       bool isGambling = await _classifier.predict(text);
 
       if (isGambling) {
+        // 1. Aksi Blokir (Jika native belum sempat blokir)
         await platform.invokeMethod('performGlobalActionBack');
 
+        // 2. Update UI & Local History
         if (mounted) {
           setState(() {
-            blockedCount++;
+            blockedCount++; // Ini akan sinkron dengan SharedPreferences
             _blockedHistory.insert(0, {
-              'url': text.length > 25 ? "${text.substring(0, 25)}..." : text,
+              'url': text.length > 30 ? "${text.substring(0, 30)}..." : text,
               'time': DateFormat('HH:mm, dd/MM').format(DateTime.now()),
             });
-            // Simpan maksimal 50 riwayat agar storage tidak bengkak
-            if (_blockedHistory.length > 50) _blockedHistory.removeLast();
           });
 
-          // 2. Simpan setiap ada deteksi baru
+          // 3. Simpan & Sync
           await _saveData();
-
           await HistoryService.syncHistoryToServer(_blockedHistory);
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Gardawara memblokir konten mencurigakan!"),
-              backgroundColor: Colors.red,
-              duration: Duration(seconds: 1),
-            ),
-          );
         }
       }
+
       await Future.delayed(const Duration(milliseconds: 500));
       _isProcessing = false;
     }
@@ -145,16 +139,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           isProtected = result;
           // Handle logic uptime
           if (isProtected) {
-             if (_startTime == null) {
-               _startTime = DateTime.now();
-               SharedPreferences.getInstance().then((prefs) => 
-                 prefs.setString('protectionStartTime', _startTime!.toIso8601String()));
-             }
+            if (_startTime == null) {
+              _startTime = DateTime.now();
+              SharedPreferences.getInstance().then(
+                (prefs) => prefs.setString(
+                  'protectionStartTime',
+                  _startTime!.toIso8601String(),
+                ),
+              );
+            }
           } else {
-             _startTime = null;
-             _activeDuration = "0j 0m";
-             SharedPreferences.getInstance().then((prefs) => 
-                 prefs.remove('protectionStartTime'));
+            _startTime = null;
+            _activeDuration = "0j 0m";
+            SharedPreferences.getInstance().then(
+              (prefs) => prefs.remove('protectionStartTime'),
+            );
           }
         });
       }
@@ -517,27 +516,43 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           ),
                           const SizedBox(height: 4),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
-                              color: isProtected ? const Color(0xFF00C9A7).withOpacity(0.2) : Colors.grey[200],
-                              borderRadius: BorderRadius.circular(8)
+                              color:
+                                  isProtected
+                                      ? const Color(0xFF00C9A7).withOpacity(0.2)
+                                      : Colors.grey[200],
+                              borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.timer, size: 14, color: isProtected ? const Color(0xFF00796B) : Colors.grey),
+                                Icon(
+                                  Icons.timer,
+                                  size: 14,
+                                  color:
+                                      isProtected
+                                          ? const Color(0xFF00796B)
+                                          : Colors.grey,
+                                ),
                                 const SizedBox(width: 4),
                                 Text(
                                   "Aktif: $_activeDuration",
                                   style: GoogleFonts.leagueSpartan(
-                                      fontSize: 12, 
-                                      fontWeight: FontWeight.w600,
-                                      color: isProtected ? const Color(0xFF00796B) : Colors.grey
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color:
+                                        isProtected
+                                            ? const Color(0xFF00796B)
+                                            : Colors.grey,
                                   ),
                                 ),
                               ],
                             ),
-                          )
+                          ),
                         ],
                       ),
                     ),
@@ -569,14 +584,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   Center(
                     child: TextButton(
                       onPressed: () {
-                         // Navigasi ke ActivityReportScreen
-                         Navigator.push(
-                           context, 
-                           MaterialPageRoute(builder: (_) => ActivityReportScreen(
-                             history: _blockedHistory,
-                             blockedCount: blockedCount,
-                           ))
-                         );
+                        // Navigasi ke ActivityReportScreen
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (_) => ActivityReportScreen(
+                                  history: _blockedHistory,
+                                  blockedCount: blockedCount,
+                                ),
+                          ),
+                        );
                       },
                       child: Text(
                         'Lihat Selengkapnya',

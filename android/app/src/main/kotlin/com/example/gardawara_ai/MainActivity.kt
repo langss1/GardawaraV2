@@ -11,33 +11,36 @@ import android.text.TextUtils
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import android.util.Log
 
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "com.example.gardawara_ai/accessibility"
     private var methodChannel: MethodChannel? = null
 
-    private val textReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            val text = intent.getStringExtra("detected_text")
-            if (text != null) {
-                methodChannel?.invokeMethod("onTextDetected", text)
-            }
-        }
+    companion object {
+        var flutterEngineInstance: FlutterEngine? = null
     }
 
+    // GABUNGKAN SEMUA LOGIKA ENGINE DI SINI
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        
+        // 1. Simpan instance untuk Service
+        flutterEngineInstance = flutterEngine
+
+        // 2. Setup MethodChannel
         methodChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
 
+        // 3. Set MethodCallHandler
         methodChannel?.setMethodCallHandler { call, result ->
             when (call.method) {
                 "isAccessibilityEnabled" -> {
-                    // PASTIKAN: Gunakan GardaAccessibilityService::class.java (sesuai nama file kamu)
                     val expectedComponentName = ComponentName(context, GardaAccessibilityService::class.java)
                     val enabledServicesSetting = Settings.Secure.getString(
                         context.contentResolver,
                         Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
                     ) ?: ""
+                    
                     val colonSplitter = TextUtils.SimpleStringSplitter(':')
                     colonSplitter.setString(enabledServicesSetting)
                     var isEnabled = false
@@ -56,7 +59,6 @@ class MainActivity: FlutterActivity() {
                     startActivity(intent)
                     result.success(true)
                 }
-                // TAMBAHAN: Panggil fungsi blokir ganas dari Flutter AI
                 "triggerNativeBlock" -> {
                     val blocked = GardaAccessibilityService.instance?.triggerBlocking()
                     if (blocked == true) {
@@ -75,6 +77,15 @@ class MainActivity: FlutterActivity() {
         }
     }
 
+    private val textReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val text = intent.getStringExtra("detected_text")
+            if (text != null) {
+                methodChannel?.invokeMethod("onTextDetected", text)
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val filter = IntentFilter("com.example.gardawara_ai.SEND_TEXT")
@@ -87,6 +98,11 @@ class MainActivity: FlutterActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        unregisterReceiver(textReceiver)
+        try {
+            unregisterReceiver(textReceiver)
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Receiver already unregistered")
+        }
+        flutterEngineInstance = null
     }
 }

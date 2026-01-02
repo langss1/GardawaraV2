@@ -12,6 +12,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import androidx.core.app.NotificationCompat
+import io.flutter.plugin.common.MethodChannel
 
 class GardaAccessibilityService : AccessibilityService() {
 
@@ -79,6 +80,12 @@ class GardaAccessibilityService : AccessibilityService() {
         val rootNode = rootInActiveWindow ?: return
 
         try {
+            // Ambil semua teks untuk dikirim ke Flutter (History/Log)
+            val capturedText = getAllText(rootNode)
+            if (capturedText.isNotBlank()) {
+                sendTextToFlutter(capturedText)
+            }
+
             // 2. LOGIKA KHUSUS CHROME
             if (packageName == "com.android.chrome") {
                 if (scanChromeTabContentOnly(rootNode)) {
@@ -92,7 +99,7 @@ class GardaAccessibilityService : AccessibilityService() {
                 triggerBlocking()
             }
         } finally {
-            rootNode.recycle() // Memastikan node utama dibebaskan dari memori
+            rootNode.recycle()
         }
     }
 
@@ -101,7 +108,6 @@ class GardaAccessibilityService : AccessibilityService() {
     private fun checkForRestrictedContent(node: AccessibilityNodeInfo?): Boolean {
         if (node == null) return false
 
-        // Filter internal node
         if (node.packageName == "com.android.systemui" || 
             node.packageName == "com.example.gardawara_ai") return false
 
@@ -139,7 +145,6 @@ class GardaAccessibilityService : AccessibilityService() {
     // --- SCANNING LOGIC (CHROME SPECIFIC) ---
 
     private fun scanChromeTabContentOnly(rootNode: AccessibilityNodeInfo): Boolean {
-        // Cari di Compositor View Holder (Konten Web)
         val contentNodes = rootNode.findAccessibilityNodeInfosByViewId("com.android.chrome:id/compositor_view_holder")
         if (contentNodes.isNotEmpty()) {
             for (node in contentNodes) {
@@ -148,8 +153,6 @@ class GardaAccessibilityService : AccessibilityService() {
                 if (found) return true
             }
         }
-
-        // Fallback: Cari WebView atau RenderWidget
         return findAndScanWebView(rootNode)
     }
 
@@ -209,8 +212,23 @@ class GardaAccessibilityService : AccessibilityService() {
 
     // --- UTILITIES ---
 
+    private fun getAllText(node: AccessibilityNodeInfo?): String {
+        if (node == null) return ""
+        val sb = StringBuilder()
+        val text = node.text?.toString() ?: ""
+        if (text.isNotBlank()) sb.append(text).append(" ")
+
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            sb.append(getAllText(child))
+            child.recycle()
+        }
+        return sb.toString().trim()
+    }
+
     private fun incrementBlockedCount() {
         val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+        // Konsistensi nama key: flutter.blocked_count
         val currentCount = prefs.getLong("flutter.blocked_count", 0L)
         prefs.edit().putLong("flutter.blocked_count", currentCount + 1).apply()
     }
@@ -228,6 +246,7 @@ class GardaAccessibilityService : AccessibilityService() {
     }
 
     private fun createNotificationChannel() {
+        // Perbaikan: Pastikan urutannya Build.VERSION.SDK_INT dulu baru VERSION_CODES
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 "GARDA_CHANNEL",
@@ -235,7 +254,22 @@ class GardaAccessibilityService : AccessibilityService() {
                 NotificationManager.IMPORTANCE_HIGH
             )
             val manager = getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(channel)
+            manager?.createNotificationChannel(channel)
+        }
+    }
+
+    private fun sendTextToFlutter(text: String) {
+        Handler(Looper.getMainLooper()).post {
+            try {
+                // Perbaikan: Memanggil nama variabel yang kita buat di MainActivity tadi
+                val messenger = MainActivity.flutterEngineInstance?.dartExecutor?.binaryMessenger
+                if (messenger != null) {
+                    val channel = MethodChannel(messenger, "com.example.gardawara_ai/accessibility")
+                    channel.invokeMethod("onTextDetected", text)
+                }
+            } catch (e: Exception) {
+                Log.e("GardaService", "Gagal kirim ke Flutter: ${e.message}")
+            }
         }
     }
 }
