@@ -2,21 +2,27 @@ import 'dart:convert';
 import 'package:workmanager/workmanager.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:async';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class HeartbeatService {
   static String get baseUrl => dotenv.env['API_URL'] ?? "";
 
   static Future<void> initialize() async {
-    await dotenv.load(fileName: ".env");
-    await Workmanager().initialize(callbackDispatcher, isInDebugMode: true);
+    try {
+      await dotenv.load(fileName: ".env");
+      await Workmanager().initialize(callbackDispatcher, isInDebugMode: true);
+    } catch (e) {
+      print("Gagal Inisialisasi Heartbeat: $e");
+    }
   }
 
   static Future<bool> verifyGuard(String chatId) async {
+    if (baseUrl.isEmpty) return false;
     try {
-      final response = await http.get(
-        Uri.parse("$baseUrl/verify-guard/$chatId"),
-      );
+      final response = await http
+          .get(Uri.parse("$baseUrl/verify-guard/$chatId"))
+          .timeout(const Duration(seconds: 8));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -24,7 +30,7 @@ class HeartbeatService {
       }
       return false;
     } catch (e) {
-      print("Error Verify: $e");
+      print("Verify Error: $e");
       return false;
     }
   }
@@ -42,8 +48,13 @@ class HeartbeatService {
       await prefs.setString('userName', name);
       await prefs.setBool('isProtected', true);
 
-      await _sendHeartbeatToServer(uid, chatId, name);
+      // --- PERBAIKAN DI SINI ---
+      // Jangan gunakan 'await' agar UI tidak menunggu respon network
+      _sendHeartbeatToServer(uid, chatId, name).catchError((e) {
+        print("Heartbeat awal gagal tapi tetap lanjut: $e");
+      });
 
+      // Langsung daftar task background
       await Workmanager().registerPeriodicTask(
         "unique-heartbeat-id",
         "judiGuardHeartbeat",
@@ -65,18 +76,20 @@ class HeartbeatService {
     String name,
   ) async {
     try {
-      final response = await http.post(
-        Uri.parse("$baseUrl/heartbeat"),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "userId": uid,
-          "guardianChatId": chatId,
-          "userName": name,
-        }),
-      );
+      final response = await http
+          .post(
+            Uri.parse("$baseUrl/heartbeat"),
+            headers: {"Content-Type": "application/json"},
+            body: jsonEncode({
+              "userId": uid,
+              "guardianChatId": chatId,
+              "userName": name,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
       print("Respon Awal Server: ${response.statusCode}");
     } catch (e) {
-      print("Gagal kirim awal: $e");
+      print("Gagal kirim heartbeat awal: $e");
     }
   }
 }
@@ -84,31 +97,36 @@ class HeartbeatService {
 @pragma('vm:entry-point')
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
-    // PENTING: Isolate background perlu memuat ulang .env
-    await dotenv.load(fileName: ".env");
-    final String backgroundBaseUrl = dotenv.env['API_URL'] ?? "";
-
-    final prefs = await SharedPreferences.getInstance();
-    final userId = prefs.getString('userId');
-    final guardianChatId = prefs.getString('guardianChatId');
-    final userName = prefs.getString('userName');
-
-    if (userId == null || backgroundBaseUrl.isEmpty) return Future.value(false);
-
+    // Inisialisasi ulang environment di isolate background
     try {
-      final response = await http.post(
-        Uri.parse("$backgroundBaseUrl/heartbeat"),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "userId": userId,
-          "guardianChatId": guardianChatId,
-          "userName": userName,
-        }),
-      );
-      print("Background Task Success: ${response.statusCode}");
-      return Future.value(true);
+      await dotenv.load(fileName: ".env");
+      final String backgroundBaseUrl = dotenv.env['API_URL'] ?? "";
+
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('userId');
+      final guardianChatId = prefs.getString('guardianChatId');
+      final userName = prefs.getString('userName');
+
+      if (userId == null || backgroundBaseUrl.isEmpty)
+        return Future.value(false);
+
+      final response = await http
+          .post(
+            Uri.parse("$backgroundBaseUrl/heartbeat"),
+            headers: {"Content-Type": "application/json"},
+            body: jsonEncode({
+              "userId": userId,
+              "guardianChatId": guardianChatId,
+              "userName": userName,
+            }),
+          )
+          .timeout(
+            const Duration(seconds: 15),
+          ); // Tambahkan timeout di background
+
+      return Future.value(response.statusCode == 200);
     } catch (e) {
-      print("Error Background: $e");
+      print("Background Task Error: $e");
       return Future.value(false);
     }
   });

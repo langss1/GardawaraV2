@@ -1,14 +1,14 @@
-import 'dart:convert'; // Untuk encode/decode JSON
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gardawara_ai/common/services/history_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Import SharedPreferences
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../common/services/classifier_service.dart';
 import 'chatbot_screen.dart';
-import 'settings_subscreens.dart'; // Import ActivityReportScreen
+import 'settings_subscreens.dart';
 import 'dart:async'; // Untuk Timer
 
 class HomeScreen extends StatefulWidget {

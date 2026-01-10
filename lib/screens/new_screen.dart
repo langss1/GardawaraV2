@@ -13,7 +13,8 @@ class NewScreen extends StatefulWidget {
   State<NewScreen> createState() => _NewScreenState();
 }
 
-class _NewScreenState extends State<NewScreen> with SingleTickerProviderStateMixin {
+class _NewScreenState extends State<NewScreen>
+    with SingleTickerProviderStateMixin {
   late VideoPlayerController _videoController;
   late AnimationController _animationController;
   bool _isInitialized = false;
@@ -58,15 +59,19 @@ class _NewScreenState extends State<NewScreen> with SingleTickerProviderStateMix
       context,
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 600),
-        pageBuilder: (context, animation, secondaryAnimation) => const SetupScreen(),
+        pageBuilder:
+            (context, animation, secondaryAnimation) => const SetupScreen(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          var curve = CurvedAnimation(parent: animation, curve: Curves.easeOutQuart);
+          var curve = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutQuart,
+          );
           return SlideTransition(
-            position: Tween<Offset>(begin: const Offset(0.0, 0.1), end: Offset.zero).animate(curve),
-            child: FadeTransition(
-              opacity: curve,
-              child: child,
-            ),
+            position: Tween<Offset>(
+              begin: const Offset(0.0, 0.1),
+              end: Offset.zero,
+            ).animate(curve),
+            child: FadeTransition(opacity: curve, child: child),
           );
         },
       ),
@@ -101,7 +106,7 @@ class _NewScreenState extends State<NewScreen> with SingleTickerProviderStateMix
                           child: ConstrainedBox(
                             constraints: BoxConstraints(
                               // Increased max height significantly as requested
-                              maxHeight: isSmallScreen ? 250 : 350, 
+                              maxHeight: isSmallScreen ? 250 : 350,
                               maxWidth: isSmallScreen ? 250 : 350,
                             ),
                             child: AspectRatio(
@@ -150,7 +155,7 @@ class _NewScreenState extends State<NewScreen> with SingleTickerProviderStateMix
                     // 3. Feature Cards (Refined Design)
                     Column(
                       children: [
-                         _buildAnimatedWidget(
+                        _buildAnimatedWidget(
                           delay: 400,
                           child: _buildFeatureCard(
                             icon: Icons.shield,
@@ -168,11 +173,12 @@ class _NewScreenState extends State<NewScreen> with SingleTickerProviderStateMix
                           child: _buildFeatureCard(
                             icon: Icons.family_restroom,
                             title: 'Kontrol Keluarga',
-                            subtitle: 'Pantau aktivitas digital orang tersayang',
+                            subtitle:
+                                'Pantau aktivitas digital orang tersayang',
                             isSmall: isSmallScreen,
                             cardColor: Colors.white,
                             iconColor: const Color(0xFF22C55E),
-                             borderColor: const Color(0xFF22C55E),
+                            borderColor: const Color(0xFF22C55E),
                           ),
                         ),
                         SizedBox(height: isSmallScreen ? 10 : 12),
@@ -185,7 +191,7 @@ class _NewScreenState extends State<NewScreen> with SingleTickerProviderStateMix
                             isSmall: isSmallScreen,
                             cardColor: Colors.white,
                             iconColor: const Color(0xFF22C55E),
-                             borderColor: const Color(0xFF22C55E),
+                            borderColor: const Color(0xFF22C55E),
                           ),
                         ),
                       ],
@@ -206,10 +212,13 @@ class _NewScreenState extends State<NewScreen> with SingleTickerProviderStateMix
                                   color: primaryDark.withOpacity(0.3),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
-                                  ),
+                                ),
                               ],
                               gradient: LinearGradient(
-                                colors: [const Color(0xFF4ADE80), const Color(0xFF22C55E)],
+                                colors: [
+                                  const Color(0xFF4ADE80),
+                                  const Color(0xFF22C55E),
+                                ],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),
@@ -263,11 +272,11 @@ class _NewScreenState extends State<NewScreen> with SingleTickerProviderStateMix
                               ),
                             ),
                             SizedBox(height: isSmallScreen ? 4 : 8),
-                            Image.asset(
-                              'assets/images/judi pasti rugi.png',
-                              height: isSmallScreen ? 30 : 40,
-                              filterQuality: FilterQuality.high,
-                            ),
+                            // Image.asset(
+                            //   'assets/images/judi pasti rugi.png',
+                            //   height: isSmallScreen ? 30 : 40,
+                            //   filterQuality: FilterQuality.high,
+                            // ),
                           ],
                         ),
                       ),
@@ -292,7 +301,8 @@ class _NewScreenState extends State<NewScreen> with SingleTickerProviderStateMix
         CurvedAnimation(
           parent: _animationController,
           curve: Interval(
-            delay / 1500, // Normalize start time based on total duration + buffer
+            delay /
+                1500, // Normalize start time based on total duration + buffer
             (delay + 500) / 1500 > 1.0 ? 1.0 : (delay + 500) / 1500,
             curve: Curves.easeOutQuart,
           ),
@@ -325,13 +335,16 @@ class _NewScreenState extends State<NewScreen> with SingleTickerProviderStateMix
   }) {
     return Container(
       padding: EdgeInsets.symmetric(
-        vertical: isSmall ? 12 : 16, 
-        horizontal: 16
+        vertical: isSmall ? 12 : 16,
+        horizontal: 16,
       ),
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor ?? iconColor.withOpacity(0.1), width: 1.5),
+        border: Border.all(
+          color: borderColor ?? iconColor.withOpacity(0.1),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),

@@ -25,12 +25,13 @@ class _SplashScreenState extends State<SplashScreen> {
 
   void _initializeVideo() {
     // Menggunakan video loading asli untuk splash screen
-    _controller = VideoPlayerController.asset("assets/video/loading_garda.mp4")
-      ..initialize().then((_) {
-        setState(() {});
-        _controller.play();
-      })
-      ..addListener(_checkVideoEnd);
+    _controller =
+        VideoPlayerController.asset("assets/video/loading_garda.mp4")
+          ..initialize().then((_) {
+            setState(() {});
+            _controller.play();
+          })
+          ..addListener(_checkVideoEnd);
   }
 
   void _checkVideoEnd() {
@@ -55,7 +56,7 @@ class _SplashScreenState extends State<SplashScreen> {
     final prefs = await SharedPreferences.getInstance();
     bool isSetupDone = prefs.getBool('isProtected') ?? false;
 
-    // ALUR BARU: 
+    // ALUR BARU:
     // Jika sudah setup -> GuardianHomeScreen (New Main)
     // Jika belum setup -> NewScreen (Welcome) -> Setup
     Widget targetScreen =
@@ -72,7 +73,10 @@ class _SplashScreenState extends State<SplashScreen> {
             const end = Offset.zero;
             const curve = Curves.easeInOutQuart;
 
-            var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+            var tween = Tween(
+              begin: begin,
+              end: end,
+            ).chain(CurveTween(curve: curve));
 
             return SlideTransition(
               position: animation.drive(tween),
@@ -104,7 +108,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 if (_controller.value.isInitialized)
                   SizedBox(
                     // Increased size to 95% of screen width to make mascot look bigger
-                    width: MediaQuery.of(context).size.width * 0.95, 
+                    width: MediaQuery.of(context).size.width * 0.95,
                     child: AspectRatio(
                       aspectRatio: _controller.value.aspectRatio,
                       child: VideoPlayer(_controller),
@@ -115,7 +119,7 @@ class _SplashScreenState extends State<SplashScreen> {
                     width: MediaQuery.of(context).size.width * 0.95,
                     height: MediaQuery.of(context).size.width * 0.95,
                   ),
-                
+
                 const SizedBox(height: 30),
                 Text(
                   'Gardawara AI',
@@ -148,11 +152,11 @@ class _SplashScreenState extends State<SplashScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Image.asset(
-                    'assets/images/judi pasti rugi.png',
-                    height: 40,
-                    filterQuality: FilterQuality.high,
-                  ),
+                  // Image.asset(
+                  //   'assets/images/judi pasti rugi.png',
+                  //   height: 40,
+                  //   filterQuality: FilterQuality.high,
+                  // ),
                 ],
               ),
             ),

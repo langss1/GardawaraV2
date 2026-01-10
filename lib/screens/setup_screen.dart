@@ -81,20 +81,31 @@ class _SetupScreenState extends State<SetupScreen>
     super.dispose();
   }
 
+  // --- Helpers ---
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: isError ? Colors.red : const Color(0xFF138066),
+        content: Text(message),
+      ),
+    );
+  }
+
   Future<void> _openTelegramBot() async {
     final Uri url = Uri.parse("https://t.me/$botUsername");
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Tidak bisa membuka Telegram")),
-        );
-      }
+      _showSnackBar("Tidak bisa membuka Telegram", isError: true);
     }
   }
+
+  // --- Main Logic (FIXED) ---
 
   void _activateProtection() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Tampilkan Loading Dialog
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -104,53 +115,49 @@ class _SetupScreenState extends State<SetupScreen>
     try {
       final prefs = await SharedPreferences.getInstance();
 
-      // LOGIKAMU: Mengambil/Membuat User ID agar tetap sama
+      // Setup User ID
       String userId = prefs.getString('userId') ?? "";
       if (userId.isEmpty) {
         userId = "user_${DateTime.now().millisecondsSinceEpoch}";
         await prefs.setString('userId', userId);
-        print("User baru dibuat: $userId");
-      } else {
-        print("Menggunakan User ID lama: $userId");
       }
 
-      // Validasi ID Telegram
-      bool isValid = await HeartbeatService.verifyGuard(_chatIdController.text);
+      // 1. Verifikasi ID Telegram (dengan timeout 10 detik)
+      bool isValid = await HeartbeatService.verifyGuard(
+        _chatIdController.text,
+      ).timeout(const Duration(seconds: 10));
 
       if (!mounted) return;
+
       if (!isValid) {
-        Navigator.pop(context); // Tutup loading dialog jika invalid
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            backgroundColor: Colors.red,
-            content: Text(
-              "ID Telegram tidak ditemukan! Pastikan sudah klik /start di bot.",
-            ),
-          ),
+        Navigator.pop(context); // Tutup loading
+        _showSnackBar(
+          "ID Telegram tidak ditemukan! Klik /start di bot.",
+          isError: true,
         );
         return;
       }
 
-      // Jalankan proteksi
+      // 2. Jalankan proteksi (dengan timeout 10 detik)
       bool success = await HeartbeatService.startProtection(
         userId,
         _chatIdController.text,
         _nameController.text,
-      );
+      ).timeout(const Duration(seconds: 10));
 
       if (success && mounted) {
-        await NotificationService().updateToken(userId);
-        
-        Navigator.pop(context); // Tutup loading dialog sebelum pindah layar
+        // 3. OPTIMASI: Jalankan updateToken di background (tanpa await)
+        // Agar user tidak menunggu proses notifikasi yang seringkali lambat
+        NotificationService().updateToken(userId).catchError((e) {
+          print("FCM Token update failed in background: $e");
+        });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            backgroundColor: const Color(0xFF138066),
-            content: const Text("Proteksi Aktif! ID tervalidasi."),
-          ),
-        );
+        // 4. Tutup loading SEGERA sebelum navigasi
+        Navigator.pop(context);
 
-        // NAVIGASI TEMANMU: Ke GuardianHomeScreen dengan animasi
+        _showSnackBar("Proteksi Aktif! ID tervalidasi.");
+
+        // 5. Navigasi ke Dashboard
         Navigator.pushReplacement(
           context,
           PageRouteBuilder(
@@ -181,13 +188,17 @@ class _SetupScreenState extends State<SetupScreen>
           ),
         );
       } else {
-         if (mounted) Navigator.pop(context); // Tutup dialog jika gagal startProtection
+        if (mounted) Navigator.pop(context);
+        _showSnackBar("Gagal mengaktifkan proteksi. Coba lagi.", isError: true);
       }
     } catch (e) {
       if (mounted) Navigator.pop(context);
-      print("Terjadi kesalahan: $e");
+      _showSnackBar("Koneksi bermasalah atau server sibuk.", isError: true);
+      print("Error: $e");
     }
   }
+
+  // --- UI Layout ---
 
   @override
   Widget build(BuildContext context) {
@@ -236,7 +247,6 @@ class _SetupScreenState extends State<SetupScreen>
     );
   }
 
-  // --- Widget Builders (Header, Cards, Buttons tetap sama) ---
   Widget _buildHeader() {
     return Container(
       width: double.infinity,

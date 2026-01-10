@@ -10,8 +10,12 @@ import 'dart:convert'; // Untuk JSON
 import 'package:gardawara_ai/common/services/history_service.dart';
 import 'package:gardawara_ai/common/services/notification_service.dart';
 
+import '../common/widgets/streak_fire_widget.dart';
 import 'settings_subscreens.dart';
 import 'chatbot_screen.dart';
+import '../controller/chatbot_controller.dart';
+
+import 'achievement_screen.dart';
 
 class GuardianHomeScreen extends StatefulWidget {
   const GuardianHomeScreen({super.key});
@@ -74,7 +78,20 @@ class _GuardianHomeScreenState extends State<GuardianHomeScreen>
     // Check for pending notification navigation
     if (NotificationService.pendingTabIndex != null) {
       _currentIndex = NotificationService.pendingTabIndex!;
-      NotificationService.pendingTabIndex = null; // Reset after consuming
+      NotificationService.pendingTabIndex = null;
+    }
+
+    // Listen to Realtime Tab Changes
+    NotificationService.tabNotifier.addListener(_handleTabRequest);
+  }
+
+  void _handleTabRequest() {
+    final index = NotificationService.tabNotifier.value;
+    if (index != null && mounted) {
+      setState(() {
+        _currentIndex = index;
+      });
+      NotificationService.tabNotifier.value = null; // Reset
     }
   }
 
@@ -95,8 +112,11 @@ class _GuardianHomeScreenState extends State<GuardianHomeScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    NotificationService.tabNotifier.removeListener(
+      _handleTabRequest,
+    ); // Clean up
     _activeTimer?.cancel();
-    _videoController?.dispose(); // Dispose controller dengan benar
+    _videoController?.dispose();
     _animController.dispose();
     super.dispose();
   }
@@ -165,9 +185,11 @@ class _GuardianHomeScreenState extends State<GuardianHomeScreen>
 
   void _handleStatusChange() {
     // SYNC STATE TO NATIVE
-    platform.invokeMethod('setNativeProtection', _appProtectionActive).catchError((e) {
-      debugPrint("Failed to sync protection state: $e");
-    });
+    platform
+        .invokeMethod('setNativeProtection', _appProtectionActive)
+        .catchError((e) {
+          debugPrint("Failed to sync protection state: $e");
+        });
 
     if (_isProtected) {
       if (_startTime == null) {
@@ -198,9 +220,26 @@ class _GuardianHomeScreenState extends State<GuardianHomeScreen>
   }
 
   Future<dynamic> _nativeMethodCallHandler(MethodCall call) async {
+    if (call.method == "openChatWithMsg") {
+      final String msg = call.arguments ?? "";
+      if (mounted) {
+        setState(() {
+          _currentIndex = 2; // Navigate to Chat
+        });
+        // Delay slighty to ensure view is active?
+        Future.delayed(const Duration(milliseconds: 300), () {
+          final controller = ChatController();
+          controller.textController.text = msg;
+          controller.sendMessage();
+        });
+      }
+      return;
+    }
+
     if (call.method == "onTextDetected") {
       if (_isProcessing || !_isProtected) return;
       _isProcessing = true;
+      // ... rest of onTextDetected
 
       final String text = call.arguments;
 
@@ -284,19 +323,27 @@ class _GuardianHomeScreenState extends State<GuardianHomeScreen>
 
   @override
   Widget build(BuildContext context) {
+    Widget content;
+    switch (_currentIndex) {
+      case 0:
+        content = _buildHomeTab();
+        break;
+      case 1:
+        content = const AchievementScreen();
+        break;
+      case 2:
+        content = _buildActivityTab();
+        break;
+      case 3:
+        content = _buildChatbotTab();
+        break;
+      default:
+        content = _buildHomeTab();
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: SafeArea(
-        child: IndexedStack(
-          index: _currentIndex,
-          children: [
-            _buildHomeTab(),
-            _buildActivityTab(),
-            _buildChatbotTab(),
-            // _buildSettingsTab(),
-          ],
-        ),
-      ),
+      body: SafeArea(child: content),
       bottomNavigationBar: _buildBottomNav(),
     );
   }
@@ -338,35 +385,50 @@ class _GuardianHomeScreenState extends State<GuardianHomeScreen>
           onDestinationSelected: (index) {
             setState(() {
               _currentIndex = index;
-              if (index == 0 || index == 3) {
+              if (index == 0) {
                 _animController.reset();
                 _animController.forward();
               }
             });
           },
-          destinations: const [
+          destinations: [
             NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home),
+              icon: const Icon(Icons.home_outlined),
+              selectedIcon: _buildBouncingIcon(Icons.home),
               label: 'Beranda',
             ),
             NavigationDestination(
-              icon: Icon(Icons.show_chart),
+              icon: const Icon(Icons.emoji_events_outlined),
+              selectedIcon: _buildBouncingIcon(Icons.emoji_events),
+              label: 'Pencapaian',
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.show_chart),
+              selectedIcon: _buildBouncingIcon(Icons.show_chart_rounded),
               label: 'Aktivitas',
             ),
             NavigationDestination(
-              icon: Icon(Icons.chat_bubble_outline),
-              selectedIcon: Icon(Icons.chat_bubble),
+              icon: const Icon(Icons.chat_bubble_outline),
+              selectedIcon: _buildBouncingIcon(Icons.chat_bubble),
               label: 'Chatbot',
             ),
-            // NavigationDestination(
-            //   icon: Icon(Icons.settings_outlined),
-            //   selectedIcon: Icon(Icons.settings),
-            //   label: 'Pengaturan',
-            // ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildBouncingIcon(IconData icon) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.5, end: 1.2), // Pop effect
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.elasticOut,
+      builder: (context, scale, child) {
+        return Transform.scale(
+          scale: scale,
+          child: Icon(icon, color: primaryDark), // Ensure color
+        );
+      },
     );
   }
 
@@ -378,6 +440,19 @@ class _GuardianHomeScreenState extends State<GuardianHomeScreen>
           _buildHeader(),
           const SizedBox(height: 16),
           _buildStatusCard(),
+          const SizedBox(height: 16),
+          // NEW STREAK FIRE WIDGET (Hero Visual)
+          _buildAnimatedItem(
+            delay: 200,
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _currentIndex = 1; // Navigate to Pencapaian
+                });
+              },
+              child: const StreakFireWidget(),
+            ),
+          ),
           const SizedBox(height: 20),
           Align(
             alignment: Alignment.centerLeft,
@@ -516,26 +591,19 @@ class _GuardianHomeScreenState extends State<GuardianHomeScreen>
   Widget _buildHeader() {
     return _buildAnimatedItem(
       delay: 0,
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
-            ),
-            child: Icon(Icons.shield_rounded, color: primaryDark, size: 30),
-          ),
-          const SizedBox(height: 8),
-          Text(
+      child: Padding(
+        padding: const EdgeInsets.only(top: 10, bottom: 20),
+        child: Center(
+          child: Text(
             'Gardawara AI',
             style: GoogleFonts.leagueSpartan(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              color: Colors.black87,
+              letterSpacing: -0.5,
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -555,25 +623,25 @@ class _GuardianHomeScreenState extends State<GuardianHomeScreen>
             'Situs Diblokir',
             blockedCount.toString(),
             Icons.block,
-            const Color(0xFF6366F1),
+            const Color(0xFFEF4444), // Red
           ),
           _buildStatCard(
             'Aktivitas AI',
             _isProtected ? 'Aktif' : 'Nonaktif',
-            Icons.psychology,
-            _isProtected ? const Color(0xFFF59E0B) : Colors.grey,
+            Icons.auto_awesome, // Sparkles ✨
+            _isProtected ? const Color(0xFF138066) : Colors.grey, // Dark Green
           ),
           _buildStatCard(
             'Waktu Aktif',
             _activeDuration,
-            Icons.timer,
-            const Color(0xFF10B981),
+            Icons.timer_rounded,
+            const Color(0xFF138066), // Dark Green (Matched Navbar)
           ),
           _buildStatCard(
             'Upaya Akses',
             '$_accessAttempts',
             Icons.warning_amber_rounded,
-            const Color(0xFFEF4444),
+            const Color(0xFFEF4444), // Red
           ),
         ],
       ),

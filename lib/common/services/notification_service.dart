@@ -5,9 +5,11 @@ import 'package:flutter/material.dart';
 import '../../controller/chatbot_controller.dart';
 
 class NotificationService {
-  static bool isHandlingNotification = false; // Flag untuk Splash Screen
+  static bool isHandlingNotification = false;
 
-  // Buat singleton agar bisa diakses dimana saja
+  static final ValueNotifier<int?> tabNotifier = ValueNotifier<int?>(null);
+  static int? pendingTabIndex;
+
   static final NotificationService _instance = NotificationService._internal();
   factory NotificationService() => _instance;
   NotificationService._internal();
@@ -29,36 +31,29 @@ class NotificationService {
       print('Izin notifikasi diberikan');
     }
 
-    // 1. Cek notifikasi yang bikin aplikasi kebuka dari mati total (Terminated)
     RemoteMessage? initialMessage = await _fcm.getInitialMessage();
     if (initialMessage != null) {
       _handleNavigation(initialMessage);
     }
 
-    // 2. Listen notifikasi saat aplikasi di background (tapi tidak mati)
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       _handleNavigation(message);
     });
   }
 
-  static int? pendingTabIndex; // Store target tab index
-
   void _handleNavigation(RemoteMessage message) {
     if (message.data['screen'] == 'chatbot') {
-      // isHandlingNotification = true; // No longer needed to block Splash Screen
+      // UBAH KE 3: Sesuai dengan index chatbot di GuardianHomeScreen
+      pendingTabIndex = 3;
+      tabNotifier.value =
+          3; // TAMBAHKAN INI: Trigger perubahan tab secara realtime
 
-      pendingTabIndex = 2; // Set target to Chatbot tab (index 2)
-
-      // Segera proses datanya ke Controller
-      // Gunakan Future.microtask agar jalan secepat mungkin
       Future.microtask(() async {
         await ChatController().addMessageFromNotification(message.data);
-        // Don't navigate here, let Splash Screen -> GuardianHomeScreen handle it
       });
     }
   }
 
-  // Fungsi terpisah untuk simpan token (panggil saat login/setup selesai)
   Future<void> updateToken(String userId) async {
     try {
       String? token = await _fcm.getToken();
