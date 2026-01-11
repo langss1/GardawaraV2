@@ -85,7 +85,7 @@ class ChatController extends ChangeNotifier {
 
   void _initGemini() {
     _model = GenerativeModel(
-      model: 'gemini-2.5-flash-lite',
+      model: 'gemini-1.5-flash',
       apiKey: _apiKey!,
       systemInstruction: Content.text(
         """Kamu adalah Garda AI, asisten rehabilitasi digital yang menggunakan pendekatan Cognitive Behavioral Therapy (CBT) untuk membantu pengguna mengatasi kecanduan judi online.
