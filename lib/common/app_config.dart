@@ -11,6 +11,6 @@ class AppConfig {
 
   static const String geminiApiKey = String.fromEnvironment(
     'GEMINI_API_KEY',
-    defaultValue: 'AIzaSyByXE9sIx-btW_iuWiIpzo7KjUgVWGEc6E',
+    defaultValue: 'AIzaSyCzJJwVivJ5okbHHGfNdn8a-OTPBBvdHwI',
   );
 }

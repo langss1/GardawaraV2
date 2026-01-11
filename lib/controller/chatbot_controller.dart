@@ -85,7 +85,7 @@ class ChatController extends ChangeNotifier {
 
   void _initGemini() {
     _model = GenerativeModel(
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.5-flash-lite',
       apiKey: _apiKey!,
       systemInstruction: Content.text(
         """Kamu adalah Garda AI, asisten rehabilitasi digital yang menggunakan pendekatan Cognitive Behavioral Therapy (CBT) untuk membantu pengguna mengatasi kecanduan judi online.
@@ -140,8 +140,7 @@ Bot: "Aku mengerti rasa stres dan kecewamu itu valid. Mari kita urai sedikit. Se
     } catch (e) {
       messages.add(
         ChatMessage(
-          // TAMPILKAN ERROR ASLI UNTUK DEBUGGING (Sementara)
-          text: "Error: $e. Coba cek koneksi atau API Key.",
+          text: "Maaf, server sedang sibuk. Coba lagi nanti ya.",
           isBot: true,
         ),
       );
