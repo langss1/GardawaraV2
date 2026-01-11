@@ -4,6 +4,8 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart'; // remove if unused
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gardawara_ai/common/app_config.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart'; // for kDebugMode
 
 import '../model/chatbot_model.dart';
 
@@ -83,10 +85,12 @@ class ChatController extends ChangeNotifier {
     await _saveMessages();
   }
 
+
   void _initGemini() {
     _model = GenerativeModel(
-      model: 'gemini-2.5-flash-lite',
+      model: 'gemini-1.5-flash', // Pakai 1.5-Flash yang stabil
       apiKey: _apiKey!,
+      httpClient: _GardawaraHttpClient(), // Inject Custom Client
       systemInstruction: Content.text(
         """Kamu adalah Garda AI, asisten rehabilitasi digital yang menggunakan pendekatan Cognitive Behavioral Therapy (CBT) untuk membantu pengguna mengatasi kecanduan judi online.
 
@@ -117,6 +121,29 @@ Bot: "Aku mengerti rasa stres dan kecewamu itu valid. Mari kita urai sedikit. Se
 
     _chatSession = _model.startChat(history: history);
   }
+
+// ... (Existing code) ...
+
+// Tambahkan class ini di bagian paling bawah file, di luar class ChatbotController
+class _GardawaraHttpClient extends http.BaseClient {
+  final _inner = http.Client();
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) {
+    // 1. Inject Identitas Package
+    request.headers['X-Android-Package'] = 'com.example.gardawara_ai';
+
+    // 2. Inject SHA-1 Signature (Sesuai Build Mode)
+    // Debug: 34:A8...
+    // Release: 2A:F0...
+    const debugSha1 = '34:A8:9E:E7:51:BB:DF:EE:6E:71:9E:7B:C0:AF:EE:A2:C5:E3:72:40';
+    const releaseSha1 = '2A:F0:68:6F:97:E1:0D:CD:64:8E:A4:B7:35:1A:C8:CD:E4:BE:26:B4';
+
+    request.headers['X-Android-Cert'] = kDebugMode ? debugSha1 : releaseSha1;
+
+    return _inner.send(request);
+  }
+}
 
   Future<void> sendMessage() async {
     final text = textController.text.trim();
