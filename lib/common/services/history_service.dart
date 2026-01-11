@@ -2,10 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart'; // Hapus ini jika tidak dipakai
+import 'package:gardawara_ai/common/app_config.dart';
 
 class HistoryService {
-  static String get baseUrl => dotenv.env['API_URL'] ?? "";
+  static String get baseUrl => AppConfig.apiUrl;
+
 
   static DateTime? _lastSyncTime;
   static const _syncInterval = Duration(seconds: 15);

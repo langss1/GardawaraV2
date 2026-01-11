@@ -34,7 +34,7 @@ class GardaAccessibilityService : AccessibilityService() {
     }
 
     private var lastScanTime: Long = 0
-    private val SCAN_INTERVAL = 2000L 
+    private val SCAN_INTERVAL = 3000L 
     private val debounceHandler = Handler(Looper.getMainLooper())
     private var pendingBlockRunnable: Runnable? = null
     private var currentActivePackage: String = "" // Pastikan CamelCase sesuai deklarasi
@@ -42,17 +42,30 @@ class GardaAccessibilityService : AccessibilityService() {
     private var chromeAppLaunchTime: Long = 0
     private val CHROME_SAFETY_DELAY = 3000L 
 
+    private val browserPackages = setOf(
+        "com.android.chrome",
+        "org.mozilla.firefox",
+        "com.sec.android.app.sbrowser",
+        "com.microsoft.emmx",
+        "com.opera.browser",
+        "com.opera.mini.native",
+        "com.ucmobile.intl",
+        "com.google.android.apps.searchlite",
+        "com.google.android.googlequicksearchbox",
+        "com.brave.browser",
+        "com.duckduckgo.mobile.android"
+    )
+
     private val excludedApps = setOf(
         "com.whatsapp", "com.whatsapp.w4b", "com.facebook.katana",
         "org.telegram.messenger", "com.instagram.android", "com.android.systemui",
         "com.example.gardawara_ai", "com.android.settings",
-        "com.google.android.inputmethod.latin", "com.google.android.googlequicksearchbox"
+        "com.google.android.inputmethod.latin"
     )
 
     private val blacklist = listOf(
-        "judi", "slot gacor", "toto", "situs gacor", "bandar judi", "taruhan bola", "judi online",
-        "888slot", "slot88", "maxwin", "rtp", "pragmatic", "deposit pulsa", "gacor hari ini",
-        "casino", "hoki", "zeus", "login slot", "daftar slot"
+        "judi online", "situs gacor", "bandar judi", "taruhan bola", 
+        "888slot", "slot88", "deposit pulsa tanpa potongan"
     )
     
     private val combinedBlacklistRegex = Regex("(?i)\\b(${blacklist.joinToString("|") { Regex.escape(it) }})\\b")
@@ -103,7 +116,10 @@ class GardaAccessibilityService : AccessibilityService() {
             currentActivePackage = eventPackageName
         }
 
-        // 2. Cek Excluded Apps dari event package
+        // 2. Hanya scan jika aplikasi adalah Browser (Hemat Baterai & Privasi)
+        if (!browserPackages.contains(currentActivePackage)) return
+
+        // 3. Cek Excluded Apps (Double check)
         if (excludedApps.contains(currentActivePackage)) return
 
         val currentTime = System.currentTimeMillis()
@@ -112,11 +128,11 @@ class GardaAccessibilityService : AccessibilityService() {
         val rootNode = rootInActiveWindow ?: return
         
         try {
-            // 3. Verifikasi ulang package name dari rootNode untuk memastikan keakuratan
+            // 4. Verifikasi ulang package name dari rootNode
             val actualPackage = rootNode.packageName?.toString() ?: ""
-            if (excludedApps.contains(actualPackage)) return
+            if (!browserPackages.contains(actualPackage)) return
 
-            // 4. Implementasi Safety Delay khusus Chrome
+            // 5. Implementasi Safety Delay khusus Chrome
             if (actualPackage == "com.android.chrome") {
                 if (currentTime - chromeAppLaunchTime < CHROME_SAFETY_DELAY) {
                     return 
@@ -129,11 +145,17 @@ class GardaAccessibilityService : AccessibilityService() {
 
             if (capturedText.isNotBlank()) {
                 lastScanTime = currentTime
+                
+                // Kirim ke Flutter (AI Decision) - Tanpa blocking native langsung
                 sendTextToFlutter(capturedText)
 
+                // Blocking Native otomatis DIMATIKAN untuk mengurangi False Positive.
+                // Biarkan AI di Flutter yang memutuskan kapan memanggil 'triggerNativeBlock'.
+                /*
                 if (checkText(capturedText)) {
                     triggerBlocking()
                 }
+                */
             }
         } finally {
             rootNode.recycle()

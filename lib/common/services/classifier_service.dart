@@ -39,23 +39,21 @@ class ClassifierService {
     String cleanText = text.toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
 
     // 1. Cek Keyword (Main Thread - Instan & Ganas)
+    // HANYA BLOKIR FRASA JELAS. Kata tunggal (hoki, zeus) diserahkan ke AI.
     final blacklist = [
-      "slot",
-      "gacor",
-      "judi",
-      "maxwin",
-      "jackpot",
-      "bet88",
-      "zeus",
-      "poker",
-      "situs88",
-      "qqslot",
-      "judi",
-      "casino",
-      "togel",
+      "situs judi",
+      "judi online",
+      "bandar slot",
+      "slot gacor", // Frasa 2 kata aman
+      "agen bola",
+      "zeus slot",  // Frasa 2 kata aman
+      "mahjong ways",
+      "pragmatic play",
+      "link alternatif",
+      "rtp live",
     ];
-    for (var word in blacklist) {
-      if (cleanText.contains(word)) {
+    for (var phrase in blacklist) {
+      if (cleanText.contains(phrase)) {
         _aksiBlokirGanas();
         return true;
       }

@@ -3,14 +3,13 @@ import 'package:workmanager/workmanager.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:gardawara_ai/common/app_config.dart';
 
 class HeartbeatService {
-  static String get baseUrl => dotenv.env['API_URL'] ?? "";
+  static String get baseUrl => AppConfig.apiUrl;
 
   static Future<void> initialize() async {
     try {
-      await dotenv.load(fileName: ".env");
       await Workmanager().initialize(callbackDispatcher, isInDebugMode: true);
     } catch (e) {
       print("Gagal Inisialisasi Heartbeat: $e");
@@ -99,8 +98,7 @@ void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     // Inisialisasi ulang environment di isolate background
     try {
-      await dotenv.load(fileName: ".env");
-      final String backgroundBaseUrl = dotenv.env['API_URL'] ?? "";
+      final String backgroundBaseUrl = AppConfig.apiUrl;
 
       final prefs = await SharedPreferences.getInstance();
       final userId = prefs.getString('userId');

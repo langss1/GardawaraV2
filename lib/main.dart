@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:gardawara_ai/common/services/notification_service.dart';
@@ -20,7 +19,7 @@ void main() async {
 
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  await dotenv.load(fileName: ".env");
+  // dotenv removed for security. Config via AppConfig.
   await HeartbeatService.initialize();
 
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
