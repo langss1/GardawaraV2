@@ -13,6 +13,7 @@ import android.os.Handler
 import android.os.Looper
 import androidx.core.app.NotificationCompat
 import io.flutter.plugin.common.MethodChannel
+import java.util.regex.Pattern
 
 class GardaAccessibilityService : AccessibilityService() {
 
@@ -20,27 +21,23 @@ class GardaAccessibilityService : AccessibilityService() {
         var instance: GardaAccessibilityService? = null
         var isProtectionActive: Boolean = true
         
-        private val JUDI_REGEX = Regex(
+        // Regex Agresif untuk Judol
+        private val GAMBLING_REGEX = Pattern.compile(
             "(?i)\\b(" +
-            "[s5\\$][\\W_]{0,2}[l1i|!][\\W_]{0,2}[o0][\\W_]{0,2}[t7]|" +
-            "j[\\W_]{0,2}[u|v][\\W_]{0,2}d[\\W_]{0,2}[i1!|]|" +
-            "[g96][\\W_]{0,2}[a4@][\\W_]{0,2}c[\\W_]{0,2}[o0][\\W_]{0,2}r|" +
-            "m[\\W_]{0,2}[a4@][\\W_]{0,2}x[\\W_]{0,2}w[\\W_]{0,2}[i1!|][\\W_]{0,2}[n]|" +
-            "pr[\\W_]{0,2}[a4@][\\W_]{0,2}g[\\W_]{0,2}m[\\W_]{0,2}[a4@][\\W_]{0,2}t[\\W_]{0,2}[i1!|][\\W_]{0,2}c|" +
-            "z[\\W_]{0,2}[e3][\\W_]{0,2}[u|v][\\W_]{0,2}[s5\\$]|" +
-            "j[\\W_]{0,2}[a4@][\\W_]{0,2}ck[\\W_]{0,2}p[\\W_]{0,2}[o0][\\W_]{0,2}t|\\bjp\\b" +
+            "judi|slot|gacor|zeus|pragmatic|maxwin|scatter|receh|domino|casino|poker|togel|live22|sbobet|mpo|bosswin|bola88|hoki|cuan|" +
+            "bet|jackpot|jp|depo|wd|withdraw|bonus|rollingan|cashback|spin|olympus|mahjong|bonanza|ways" +
             ")\\b"
         )
     }
 
     private var lastScanTime: Long = 0
-    private val SCAN_INTERVAL = 500L // 0.5 detik (Agresif)
+    private val SCAN_INTERVAL = 1300L // 1.3 detik sesuai permintaan user
     private val debounceHandler = Handler(Looper.getMainLooper())
     private var pendingBlockRunnable: Runnable? = null
     private var currentActivePackage: String = "" // Pastikan CamelCase sesuai deklarasi
     
     private var chromeAppLaunchTime: Long = 0
-    private val CHROME_SAFETY_DELAY = 500L // 0.5 detik (Agresif)
+    private val CHROME_SAFETY_DELAY = 1300L // 1.3 detik sesuai permintaan user
 
     private val browserPackages = setOf(
         "com.android.chrome",
