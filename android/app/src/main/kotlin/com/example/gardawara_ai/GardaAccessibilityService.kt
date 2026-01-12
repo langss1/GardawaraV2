@@ -22,7 +22,7 @@ class GardaAccessibilityService : AccessibilityService() {
         var isProtectionActive: Boolean = true
         
         // Regex Agresif untuk Judol
-        private val GAMBLING_REGEX = Pattern.compile(
+        private val JUDI_REGEX = Regex(
             "(?i)\\b(" +
             "judi|slot|gacor|zeus|pragmatic|maxwin|scatter|receh|domino|casino|poker|togel|live22|sbobet|mpo|bosswin|bola88|hoki|cuan|" +
             "bet|jackpot|jp|depo|wd|withdraw|bonus|rollingan|cashback|spin|olympus|mahjong|bonanza|ways" +
