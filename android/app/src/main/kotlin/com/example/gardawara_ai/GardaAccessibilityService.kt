@@ -34,13 +34,13 @@ class GardaAccessibilityService : AccessibilityService() {
     }
 
     private var lastScanTime: Long = 0
-    private val SCAN_INTERVAL = 2000L // 2 detik sesuai permintaan user
+    private val SCAN_INTERVAL = 1000L // 1 detik sesuai permintaan user
     private val debounceHandler = Handler(Looper.getMainLooper())
     private var pendingBlockRunnable: Runnable? = null
     private var currentActivePackage: String = "" // Pastikan CamelCase sesuai deklarasi
     
     private var chromeAppLaunchTime: Long = 0
-    private val CHROME_SAFETY_DELAY = 2000L // 2 detik sesuai permintaan user 
+    private val CHROME_SAFETY_DELAY = 1000L // 1 detik sesuai permintaan user 
 
     private val browserPackages = setOf(
         "com.android.chrome",
