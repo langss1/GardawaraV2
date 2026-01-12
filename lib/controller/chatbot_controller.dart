@@ -140,7 +140,7 @@ Bot: "Aku mengerti rasa stres dan kecewamu itu valid. Mari kita urai sedikit. Se
     } catch (e) {
       messages.add(
         ChatMessage(
-          text: "Maaf, server sedang sibuk. Coba lagi nanti ya.",
+          text: "DEBUG: $e", // Tampilkan error asli agar ketahuan masalahnya
           isBot: true,
         ),
       );
